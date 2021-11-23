@@ -55,6 +55,12 @@ std::shared_ptr<client> init_client(const std::string& hostname,
                                     int lidar_port = 0, int imu_port = 0,
                                     int timeout_sec = 60);
 
+bool reinitialize_and_save_config_params(const std::string& hostname);
+
+bool reinitialize_lidar_settings(const std::string& hostname, const std::string& udp_dest_host,
+                                lidar_mode mode, timestamp_mode ts_mode,
+                                int lidar_port, int imu_port, bool phase_lock_enable, int phase_lock_offset_deg);
+
 /**
  * Block for up to timeout_sec until either data is ready or an error occurs.
  *
@@ -66,7 +72,7 @@ std::shared_ptr<client> init_client(const std::string& hostname,
  * LIDAR_DATA) is true if lidar data is ready to read, and (s & IMU_DATA) is
  * true if imu data is ready to read
  */
-client_state poll_client(const client& cli, int timeout_sec = 1);
+client_state poll_client(const client& cli, int timeout_usec, int timeout_sec = 0);
 
 /**
  * Read lidar data from the sensor. Will not block.
@@ -99,6 +105,35 @@ bool read_imu_packet(const client& cli, uint8_t* buf, const packet_format& pf);
  * @return a text blob of metadata parseable into a sensor_info struct
  */
 std::string get_metadata(client& cli, int timeout_sec = 60);
+
+/**
+ * Get metadata text blob from the sensor in standby mode.
+ *
+ * Will attempt to fetch from the network if not already populated.
+ *
+ * @param cli client returned by init_client associated with the connection
+ * @param timeout_sec how long to wait for the sensor to initialize
+ * @return a text blob of metadata parseable into a sensor_info struct
+ */
+std::string get_standby_metadata(client& cli, int timeout_sec = 60);
+
+/**
+ * Get alerts from the sensor.
+ *
+ * @param cli returned by init_client associated with the connection
+ * @param timeout_sec how long to wait for the sensor to timeout
+ * @return a text of the get_alerts
+ */
+std::string get_sensors_alert(client& cli);
+
+/**
+ * Get beam intrinsics value from the sensor.
+ *
+ * @param cli
+ * @param timeout_sec
+ * @return a text of the beam intrinsics
+ */
+std::string get_beam_intrinsics(client& cli, sensor_info& info);
 
 /**
  * Get sensor config from the sensor

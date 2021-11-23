@@ -261,6 +261,60 @@ bool collect_metadata(client& cli, SOCKET sock_fd, chrono::seconds timeout) {
     success &= do_tcp_cmd(sock_fd, {"get_config_param", "active"}, res);
     success &=
         reader->parse(res.c_str(), res.c_str() + res.size(), &root, NULL);
+    update_json_obj(cli.meta, root);
+
+    // merge extra info into metadata
+    cli.meta["hostname"] = cli.hostname;
+    cli.meta["lidar_mode"] = root["lidar_mode"];
+    cli.meta["client_version"] = ouster::CLIENT_VERSION;
+
+    cli.meta["json_calibration_version"] = FW_2_0;
+
+    return success;
+}
+
+bool collect_standby_metadata(client& cli, SOCKET sock_fd, chrono::seconds timeout) {
+    Json::CharReaderBuilder builder{};
+    auto reader = std::unique_ptr<Json::CharReader>{builder.newCharReader()};
+    Json::Value root{};
+    std::string errors{};
+
+    std::string res;
+    bool success = true;
+
+    auto timeout_time = chrono::steady_clock::now() + timeout;
+
+    success &= do_tcp_cmd(sock_fd, {"get_sensor_info"}, res);
+    success &=
+            reader->parse(res.c_str(), res.c_str() + res.size(), &root, NULL);
+
+    if (chrono::steady_clock::now() >= timeout_time) return false;
+    std::this_thread::sleep_for(chrono::seconds(1));
+
+    update_json_obj(cli.meta, root);
+
+    success &= do_tcp_cmd(sock_fd, {"get_imu_intrinsics"}, res);
+    success &=
+            reader->parse(res.c_str(), res.c_str() + res.size(), &root, NULL);
+    update_json_obj(cli.meta, root);
+
+    success &= do_tcp_cmd(sock_fd, {"get_lidar_intrinsics"}, res);
+    success &=
+            reader->parse(res.c_str(), res.c_str() + res.size(), &root, NULL);
+    update_json_obj(cli.meta, root);
+
+    // try to query data format
+    bool got_format = true;
+    got_format &= do_tcp_cmd(sock_fd, {"get_lidar_data_format"}, res);
+    got_format &=
+            reader->parse(res.c_str(), res.c_str() + res.size(), &root, NULL);
+    if (got_format) cli.meta["data_format"] = root;
+
+    // get lidar mode
+    success &= do_tcp_cmd(sock_fd, {"get_config_param", "active"}, res);
+    success &=
+            reader->parse(res.c_str(), res.c_str() + res.size(), &root, NULL);
+    update_json_obj(cli.meta, root);
 
     // merge extra info into metadata
     cli.meta["hostname"] = cli.hostname;
@@ -490,6 +544,80 @@ std::string get_metadata(client& cli, int timeout_sec) {
     return Json::writeString(builder, cli.meta);
 }
 
+std::string get_standby_metadata(client& cli, int timeout_sec) {
+    if (!cli.meta) {
+        SOCKET sock_fd = cfg_socket(cli.hostname.c_str());
+        if (sock_fd < 0) return "";
+
+        bool success =
+                collect_standby_metadata(cli, sock_fd, chrono::seconds{timeout_sec});
+
+        impl::socket_close(sock_fd);
+
+        if (!success) return "";
+    }
+
+    Json::StreamWriterBuilder builder;
+    builder["enableYAMLCompatibility"] = true;
+    builder["precision"] = 6;
+    builder["indentation"] = "    ";
+    return Json::writeString(builder, cli.meta);
+}
+
+std::string get_sensors_alert(client& cli) {
+    SOCKET sock_fd = cfg_socket(cli.hostname.c_str());
+    if (sock_fd < 0) return "";
+
+    std::string res;
+    bool success = true;
+
+    success &= do_tcp_cmd(sock_fd, {"get_alerts"}, res);
+
+    impl::socket_close(sock_fd);
+
+    if (!success) return "";
+
+    return res;
+}
+
+std::string get_beam_intrinsics(client& cli, sensor_info& info) {
+    info = sensor_info{};
+    SOCKET sock_fd = cfg_socket(cli.hostname.c_str());
+    if (sock_fd < 0) return "";
+
+    Json::CharReaderBuilder builder{};
+    auto reader = std::unique_ptr<Json::CharReader>{builder.newCharReader()};
+    Json::Value root{};
+    std::string errors{};
+
+    std::string res;
+    bool success = true;
+
+    success &= do_tcp_cmd(sock_fd, {"get_beam_intrinsics"}, res);
+    success &=
+            reader->parse(res.c_str(), res.c_str() + res.size(), &root, NULL);
+
+    if (root.isMember("lidar_origin_to_beam_origin_mm")) {
+        info.lidar_origin_to_beam_origin_mm =
+                root["lidar_origin_to_beam_origin_mm"].asDouble();
+    } else {
+        std::cerr << "WARNING: No lidar_origin_to_beam_origin_mm found."
+                  << std::endl;
+    }
+
+    for (const auto& v : root["beam_altitude_angles"])
+        info.beam_altitude_angles.push_back(v.asDouble());
+
+    for (const auto& v : root["beam_azimuth_angles"])
+        info.beam_azimuth_angles.push_back(v.asDouble());
+
+    impl::socket_close(sock_fd);
+
+    if (!success) return "";
+
+    return res;
+}
+
 std::shared_ptr<client> init_client(const std::string& hostname, int lidar_port,
                                     int imu_port) {
     auto cli = std::make_shared<client>();
@@ -574,7 +702,84 @@ std::shared_ptr<client> init_client(const std::string& hostname,
     return success ? cli : std::shared_ptr<client>();
 }
 
-client_state poll_client(const client& c, const int timeout_sec) {
+bool reinitialize_and_save_config_params(const std::string& hostname) {
+    int sock_fd = cfg_socket(hostname.c_str());
+    if (!impl::socket_valid(sock_fd)) return false;
+
+    std::string res;
+    bool success = true;
+
+    success &= do_tcp_cmd(sock_fd, {"reinitialize"}, res);
+    success &= res == "reinitialize";
+
+    success &= do_tcp_cmd(sock_fd, {"save_config_params"}, res);
+    success &= res == "save_config_params";
+
+    impl::socket_close(sock_fd);
+    return success;
+}
+
+bool reinitialize_lidar_settings(const std::string& hostname, const std::string& udp_dest_host,
+                                 lidar_mode mode, timestamp_mode ts_mode,
+                                 int lidar_port, int imu_port, bool phase_lock_enable,
+                                 int phase_lock_offset_deg) {
+    int sock_fd = cfg_socket(hostname.c_str());
+    if (!impl::socket_valid(sock_fd)) return false;
+
+    std::string res;
+    bool success = true;
+
+    success &=
+        do_tcp_cmd(sock_fd, {"set_config_param", "udp_ip", udp_dest_host}, res);
+    success &= res == "set_config_param";
+
+    success &= do_tcp_cmd(
+        sock_fd,
+        {"set_config_param", "udp_port_lidar", std::to_string(lidar_port)},
+        res);
+    success &= res == "set_config_param";
+
+    success &= do_tcp_cmd(
+        sock_fd, {"set_config_param", "udp_port_imu", std::to_string(imu_port)},
+        res);
+    success &= res == "set_config_param";
+
+    // if specified (not UNSPEC), set the lidar and timestamp modes
+    if (mode) {
+        success &= do_tcp_cmd(
+            sock_fd, {"set_config_param", "lidar_mode", to_string(mode)}, res);
+        success &= res == "set_config_param";
+    }
+
+    if (ts_mode) {
+        success &= do_tcp_cmd(
+            sock_fd, {"set_config_param", "timestamp_mode", to_string(ts_mode)},
+            res);
+        success &= res == "set_config_param";
+    }
+
+    std::string phase_lock_enable_str = phase_lock_enable ? "true" : "false";
+    success &= do_tcp_cmd(
+            sock_fd, {"set_config_param", "phase_lock_enable", phase_lock_enable_str},
+            res);
+    success &= res == "set_config_param";
+
+    success &= do_tcp_cmd(
+            sock_fd, {"set_config_param", "phase_lock_offset", std::to_string(phase_lock_offset_deg)},
+            res);
+    success &= res == "set_config_param";
+
+    success &= do_tcp_cmd(sock_fd, {"reinitialize"}, res);
+    success &= res == "reinitialize";
+
+    success &= do_tcp_cmd(sock_fd, {"write_config_txt"}, res);
+    success &= res == "write_config_txt";
+
+    impl::socket_close(sock_fd);
+    return success;
+}
+
+client_state poll_client(const client& c, const int timeout_usec, const int timeout_sec) {
     fd_set rfds;
     FD_ZERO(&rfds);
     FD_SET(c.lidar_fd, &rfds);
@@ -582,7 +787,7 @@ client_state poll_client(const client& c, const int timeout_sec) {
 
     timeval tv;
     tv.tv_sec = timeout_sec;
-    tv.tv_usec = 0;
+    tv.tv_usec = timeout_usec;
 
     SOCKET max_fd = std::max(c.lidar_fd, c.imu_fd);
 

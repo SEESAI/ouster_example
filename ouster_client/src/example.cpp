@@ -97,7 +97,7 @@ int main(int argc, char* argv[]) {
 
     for (int i = 0; i < N_SCANS;) {
         // wait until sensor data is available
-        sensor::client_state st = sensor::poll_client(*handle);
+        sensor::client_state st = sensor::poll_client(*handle, 0, 1);
 
         // check for error status
         if (st & sensor::CLIENT_ERROR)

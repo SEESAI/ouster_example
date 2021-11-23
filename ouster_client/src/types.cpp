@@ -611,6 +611,100 @@ sensor_info parse_metadata(const std::string& meta) {
     return info;
 }
 
+sensor_info parse_standby_metadata(const std::string& meta) {
+    Json::Value root{};
+    Json::CharReaderBuilder builder{};
+    std::string errors{};
+    std::stringstream ss{meta};
+
+    if (meta.size()) {
+        if (!Json::parseFromStream(builder, ss, &root, &errors))
+            throw std::invalid_argument{errors.c_str()};
+    }
+
+    sensor_info info{};
+
+    info.name = root["hostname"].asString();
+    info.sn = root["prod_sn"].asString();
+    info.fw_rev = root["build_rev"].asString();
+    info.mode = lidar_mode_of_string(root["lidar_mode"].asString());
+    info.prod_line = root["prod_line"].asString();
+
+    // "data_format" introduced in fw 2.0. Fall back to 1.13
+    if (root.isMember("data_format")) {
+        info.format.pixels_per_column =
+                root["data_format"]["pixels_per_column"].asInt();
+        info.format.columns_per_packet =
+                root["data_format"]["columns_per_packet"].asInt();
+        info.format.columns_per_frame =
+                root["data_format"]["columns_per_frame"].asInt();
+
+        if (root["data_format"]["pixel_shift_by_row"].size() !=
+            info.format.pixels_per_column) {
+            throw std::invalid_argument{
+                "Unexpected number of pixel_shift_by_row"};
+        }
+
+        for (const auto& v : root["data_format"]["pixel_shift_by_row"])
+            info.format.pixel_shift_by_row.push_back(v.asInt());
+
+        if (root["data_format"].isMember("column_window")) {
+            if (root["data_format"]["column_window"].size() != 2) {
+                throw std::invalid_argument{
+                    "Unexpected size of column_window tuple"};
+            }
+            info.format.column_window.first =
+                    root["data_format"]["column_window"][0].asInt();
+            info.format.column_window.second =
+                    root["data_format"]["column_window"][1].asInt();
+        } else {
+            std::cerr << "WARNING: No column window found." << std::endl;
+            info.format.column_window =
+                    default_column_window(info.format.columns_per_frame);
+        }
+
+    } else {
+        std::cerr << "WARNING: No data_format found." << std::endl;
+        info.format = default_data_format(info.mode);
+    }
+
+    // "imu_to_sensor_transform" may be absent in sensor config
+    // produced by Ouster Studio, so we backfill it with default value
+    if (root["imu_to_sensor_transform"].size() == 16) {
+        for (int i = 0; i < 4; i++) {
+            for (int j = 0; j < 4; j++) {
+                const Json::Value::ArrayIndex ind = i * 4 + j;
+                info.imu_to_sensor_transform(i, j) =
+                        root["imu_to_sensor_transform"][ind].asDouble();
+            }
+        }
+    } else {
+        std::cerr << "WARNING: No valid imu_to_sensor_transform found."
+                  << std::endl;
+        info.imu_to_sensor_transform = default_imu_to_sensor_transform;
+    }
+
+    // "lidar_to_sensor_transform" may be absent in sensor config
+    // produced by Ouster Studio, so we backfill it with default value
+    if (root["lidar_to_sensor_transform"].size() == 16) {
+        for (int i = 0; i < 4; i++) {
+            for (int j = 0; j < 4; j++) {
+                const Json::Value::ArrayIndex ind = i * 4 + j;
+                info.lidar_to_sensor_transform(i, j) =
+                    root["lidar_to_sensor_transform"][ind].asDouble();
+            }
+        }
+    } else {
+        std::cerr << "WARNING: No valid lidar_to_sensor_transform found."
+                  << std::endl;
+        info.lidar_to_sensor_transform = default_lidar_to_sensor_transform;
+    }
+
+    info.extrinsic = mat4d::Identity();
+
+    return info;
+}
+
 sensor_info metadata_from_json(const std::string& json_file) {
     std::stringstream buf{};
     std::ifstream ifs{};
