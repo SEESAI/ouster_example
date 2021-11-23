@@ -1,6 +1,6 @@
 #include "ouster/client.h"
 
-#include <json/json.h>
+#include <jsoncpp/json/json.h>
 
 #include <algorithm>
 #include <cerrno>
@@ -490,6 +490,24 @@ std::string get_metadata(client& cli, int timeout_sec) {
     return Json::writeString(builder, cli.meta);
 }
 
+std::string get_sensors_alert(client& cli, int timeout_sec) {
+    SOCKET sock_fd = cfg_socket(cli.hostname.c_str());
+    if (sock_fd < 0) return "";
+
+    std::string res;
+    bool success = true;
+
+    auto timeout_time = std::chrono::steady_clock::now() + std::chrono::seconds{timeout_sec};
+
+    success &= do_tcp_cmd(sock_fd, {"get_alerts"}, res);
+
+    impl::socket_close(sock_fd);
+
+    if (!success) return "";
+
+    return res;
+}
+
 std::shared_ptr<client> init_client(const std::string& hostname, int lidar_port,
                                     int imu_port) {
     auto cli = std::make_shared<client>();
@@ -572,6 +590,54 @@ std::shared_ptr<client> init_client(const std::string& hostname,
     impl::socket_close(sock_fd);
 
     return success ? cli : std::shared_ptr<client>();
+}
+
+bool reinitialize_lidar_settings(const std::string& hostname, const std::string& udp_dest_host,
+                                 lidar_mode mode, timestamp_mode ts_mode,
+                                 int lidar_port, int imu_port) {
+    int sock_fd = cfg_socket(hostname.c_str());
+    if (!impl::socket_valid(sock_fd)) return false;
+
+    std::string res;
+    bool success = true;
+
+    success &=
+        do_tcp_cmd(sock_fd, {"set_config_param", "udp_ip", udp_dest_host}, res);
+    success &= res == "set_config_param";
+
+    success &= do_tcp_cmd(
+        sock_fd,
+        {"set_config_param", "udp_port_lidar", std::to_string(lidar_port)},
+        res);
+    success &= res == "set_config_param";
+
+    success &= do_tcp_cmd(
+        sock_fd, {"set_config_param", "udp_port_imu", std::to_string(imu_port)},
+        res);
+    success &= res == "set_config_param";
+
+    // if specified (not UNSPEC), set the lidar and timestamp modes
+    if (mode) {
+        success &= do_tcp_cmd(
+            sock_fd, {"set_config_param", "lidar_mode", to_string(mode)}, res);
+        success &= res == "set_config_param";
+    }
+
+    if (ts_mode) {
+        success &= do_tcp_cmd(
+            sock_fd, {"set_config_param", "timestamp_mode", to_string(ts_mode)},
+            res);
+        success &= res == "set_config_param";
+    }
+
+    success &= do_tcp_cmd(sock_fd, {"reinitialize"}, res);
+    success &= res == "reinitialize";
+
+    success &= do_tcp_cmd(sock_fd, {"write_config_txt"}, res);
+    success &= res == "write_config_txt";
+
+    impl::socket_close(sock_fd);
+    return success;
 }
 
 client_state poll_client(const client& c, const int timeout_sec) {

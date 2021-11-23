@@ -352,6 +352,7 @@ struct packet_format {
 
     // Channel data block accessors
     const uint8_t* (*const nth_px)(int n, const uint8_t* col_buf);
+    uint8_t (*const px_blocked)(const uint8_t* px_buf);
     uint32_t (*const px_range)(const uint8_t* px_buf);
     uint16_t (*const px_reflectivity)(const uint8_t* px_buf);
     uint16_t (*const px_signal)(const uint8_t* px_buf);

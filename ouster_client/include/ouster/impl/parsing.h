@@ -67,6 +67,13 @@ inline const uint8_t* nth_px(int n, const uint8_t* col_buf) {
     return col_buf + 16 + (n * pixel_bytes);
 }
 
+inline uint8_t px_blocked(const uint8_t* px_buf) {
+    uint8_t res;
+    std::memcpy(&res, px_buf, sizeof(uint8_t));
+    res &= 0xff;
+    return res;
+}
+
 inline uint32_t px_range(const uint8_t* px_buf) {
     uint32_t res;
     std::memcpy(&res, px_buf, sizeof(uint32_t));
@@ -163,6 +170,7 @@ constexpr packet_format packet_2_0() {
         impl::col_status<N_PIXELS>,
 
         impl::nth_px,
+        impl::px_blocked,
         impl::px_range,
         impl::px_reflectivity,
         impl::px_signal,

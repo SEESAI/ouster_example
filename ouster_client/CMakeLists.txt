@@ -6,7 +6,7 @@ set(ouster_client_VERSION_SUFFIX "")
 
 # ==== Requirements ====
 find_package(Eigen3 REQUIRED)
-find_package(jsoncpp REQUIRED)
+find_package(nlohmann_json REQUIRED)
 
 # ==== Build Metadata Target ====
 add_custom_target(generate_build_header)
@@ -25,7 +25,7 @@ add_dependencies(ouster_build generate_build_header)
 
 # ==== Libraries ====
 add_library(ouster_client src/client.cpp src/types.cpp src/netcompat.cpp src/lidar_scan.cpp src/image_processing.cpp)
-target_link_libraries(ouster_client PUBLIC jsoncpp_lib Eigen3::Eigen ouster_build)
+target_link_libraries(ouster_client PUBLIC nlohmann_json nlohmann_json::nlohmann_json Eigen3::Eigen ouster_build)
 if(WIN32)
   target_link_libraries(ouster_client PUBLIC ws2_32)
 endif()
