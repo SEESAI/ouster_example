@@ -1,6 +1,6 @@
 #include "ouster/types.h"
 
-#include <jsoncpp/json/json.h>
+#include <json/json.h>
 
 #include <Eigen/Eigen>
 #include <algorithm>
