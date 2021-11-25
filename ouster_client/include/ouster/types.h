@@ -285,6 +285,18 @@ std::string to_string(AzimuthWindow azimuth_window);
 sensor_info parse_metadata(const std::string& metadata);
 
 /**
+ * Parse metadata text blob from the sensor in standby mode into a sensor_info struct.
+ *
+ * String and vector fields will have size 0 if the parameter cannot
+ * be found or parse, while lidar_mode will be set to 0 (invalid).
+ *
+ * @throw runtime_error if the text is not valid json
+ * @param metadata a text blob returned by get_metadata from client.h
+ * @return a sensor_info struct populated with a subset of the metadata
+ */
+sensor_info parse_standby_metadata(const std::string& metadata);
+
+/**
  * Parse metadata given path to a json file.
  *
  * @throw runtime_error if json file does not exist or is malformed
