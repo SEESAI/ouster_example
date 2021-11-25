@@ -105,6 +105,17 @@ bool read_imu_packet(const client& cli, uint8_t* buf, const packet_format& pf);
 std::string get_metadata(client& cli, int timeout_sec = 60);
 
 /**
+ * Get metadata text blob from the sensor in standby mode.
+ *
+ * Will attempt to fetch from the network if not already populated.
+ *
+ * @param cli client returned by init_client associated with the connection
+ * @param timeout_sec how long to wait for the sensor to initialize
+ * @return a text blob of metadata parseable into a sensor_info struct
+ */
+std::string get_standby_metadata(client& cli, int timeout_sec = 60);
+
+/**
  * Get alerts from the sensor.
  *
  * @param cli returned by init_client associated with the connection

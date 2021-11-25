@@ -273,6 +273,64 @@ bool collect_metadata(client& cli, SOCKET sock_fd, chrono::seconds timeout) {
     return success;
 }
 
+bool collect_standby_metadata(client& cli, SOCKET sock_fd, chrono::seconds timeout) {
+    Json::CharReaderBuilder builder{};
+    auto reader = std::unique_ptr<Json::CharReader>{builder.newCharReader()};
+    Json::Value root{};
+    std::string errors{};
+
+    std::string res;
+    bool success = true;
+
+    auto timeout_time = chrono::steady_clock::now() + timeout;
+
+    success &= do_tcp_cmd(sock_fd, {"get_sensor_info"}, res);
+    success &=
+            reader->parse(res.c_str(), res.c_str() + res.size(), &root, NULL);
+
+    if (chrono::steady_clock::now() >= timeout_time) return false;
+    std::this_thread::sleep_for(chrono::seconds(1));
+
+    update_json_obj(cli.meta, root);
+
+    success &= do_tcp_cmd(sock_fd, {"get_beam_intrinsics"}, res);
+    success &=
+            reader->parse(res.c_str(), res.c_str() + res.size(), &root, NULL);
+    update_json_obj(cli.meta, root);
+
+    success &= do_tcp_cmd(sock_fd, {"get_imu_intrinsics"}, res);
+    success &=
+            reader->parse(res.c_str(), res.c_str() + res.size(), &root, NULL);
+    update_json_obj(cli.meta, root);
+
+    success &= do_tcp_cmd(sock_fd, {"get_lidar_intrinsics"}, res);
+    success &=
+            reader->parse(res.c_str(), res.c_str() + res.size(), &root, NULL);
+    update_json_obj(cli.meta, root);
+
+    // try to query data format
+    bool got_format = true;
+    got_format &= do_tcp_cmd(sock_fd, {"get_lidar_data_format"}, res);
+    got_format &=
+            reader->parse(res.c_str(), res.c_str() + res.size(), &root, NULL);
+    if (got_format) cli.meta["data_format"] = root;
+
+    // get lidar mode
+    success &= do_tcp_cmd(sock_fd, {"get_config_param", "active"}, res);
+    success &=
+            reader->parse(res.c_str(), res.c_str() + res.size(), &root, NULL);
+    update_json_obj(cli.meta, root);
+
+    // merge extra info into metadata
+    cli.meta["hostname"] = cli.hostname;
+    cli.meta["lidar_mode"] = root["lidar_mode"];
+    cli.meta["client_version"] = ouster::CLIENT_VERSION;
+
+    cli.meta["json_calibration_version"] = FW_2_0;
+
+    return success;
+}
+
 // conversion for operating_mode (introduced in fw 2.0) to auto_start
 // (deprecated in 1.13)
 const std::array<std::pair<OperatingMode, std::string>, 2> auto_start_strings =
@@ -478,6 +536,26 @@ std::string get_metadata(client& cli, int timeout_sec) {
 
         bool success =
             collect_metadata(cli, sock_fd, chrono::seconds{timeout_sec});
+
+        impl::socket_close(sock_fd);
+
+        if (!success) return "";
+    }
+
+    Json::StreamWriterBuilder builder;
+    builder["enableYAMLCompatibility"] = true;
+    builder["precision"] = 6;
+    builder["indentation"] = "    ";
+    return Json::writeString(builder, cli.meta);
+}
+
+std::string get_standby_metadata(client& cli, int timeout_sec) {
+    if (!cli.meta) {
+        SOCKET sock_fd = cfg_socket(cli.hostname.c_str());
+        if (sock_fd < 0) return "";
+
+        bool success =
+                collect_standby_metadata(cli, sock_fd, chrono::seconds{timeout_sec});
 
         impl::socket_close(sock_fd);
 
