@@ -125,6 +125,16 @@ std::string get_standby_metadata(client& cli, int timeout_sec = 60);
 std::string get_sensors_alert(client& cli, int timeout_sec = 15);
 
 /**
+ * Get beam intrinsics value from the sensor.
+ *
+ * @param cli
+ * @param timeout_sec
+ * @return a text of the beam intrinsics
+ */
+
+std::string get_beam_intrinsics(client& cli, int timeout_sec = 15);
+
+/**
  * Get sensor config from the sensor
  *
  * Populates passed in config with the results of get_config
