@@ -564,14 +564,12 @@ std::string get_standby_metadata(client& cli, int timeout_sec) {
     return Json::writeString(builder, cli.meta);
 }
 
-std::string get_sensors_alert(client& cli, int timeout_sec) {
+std::string get_sensors_alert(client& cli) {
     SOCKET sock_fd = cfg_socket(cli.hostname.c_str());
     if (sock_fd < 0) return "";
 
     std::string res;
     bool success = true;
-
-    auto timeout_time = std::chrono::steady_clock::now() + std::chrono::seconds{timeout_sec};
 
     success &= do_tcp_cmd(sock_fd, {"get_alerts"}, res);
 
@@ -582,7 +580,7 @@ std::string get_sensors_alert(client& cli, int timeout_sec) {
     return res;
 }
 
-std::string get_beam_intrinsics(client& cli, int timeout_sec) {
+std::string get_beam_intrinsics(client& cli) {
     SOCKET sock_fd = cfg_socket(cli.hostname.c_str());
     if (sock_fd < 0) return "";
 
