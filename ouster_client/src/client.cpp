@@ -582,6 +582,22 @@ std::string get_sensors_alert(client& cli, int timeout_sec) {
     return res;
 }
 
+std::string get_beam_intrinsics(client& cli, int timeout_sec) {
+    SOCKET sock_fd = cfg_socket(cli.hostname.c_str());
+    if (sock_fd < 0) return "";
+
+    std::string res;
+    bool success = true;
+
+    success &= do_tcp_cmd(sock_fd, {"get_beam_intrinsics"}, res);
+
+    impl::socket_close(sock_fd);
+
+    if (!success) return "";
+
+    return res;
+}
+
 std::shared_ptr<client> init_client(const std::string& hostname, int lidar_port,
                                     int imu_port) {
     auto cli = std::make_shared<client>();
