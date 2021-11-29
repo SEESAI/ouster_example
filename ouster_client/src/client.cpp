@@ -293,11 +293,6 @@ bool collect_standby_metadata(client& cli, SOCKET sock_fd, chrono::seconds timeo
 
     update_json_obj(cli.meta, root);
 
-    success &= do_tcp_cmd(sock_fd, {"get_beam_intrinsics"}, res);
-    success &=
-            reader->parse(res.c_str(), res.c_str() + res.size(), &root, NULL);
-    update_json_obj(cli.meta, root);
-
     success &= do_tcp_cmd(sock_fd, {"get_imu_intrinsics"}, res);
     success &=
             reader->parse(res.c_str(), res.c_str() + res.size(), &root, NULL);
