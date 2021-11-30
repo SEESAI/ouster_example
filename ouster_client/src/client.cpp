@@ -580,14 +580,45 @@ std::string get_sensors_alert(client& cli) {
     return res;
 }
 
-std::string get_beam_intrinsics(client& cli) {
+std::string get_beam_intrinsics(client& cli, sensor_info& info) {
+    info = sensor_info{};
     SOCKET sock_fd = cfg_socket(cli.hostname.c_str());
     if (sock_fd < 0) return "";
+
+    Json::CharReaderBuilder builder{};
+    auto reader = std::unique_ptr<Json::CharReader>{builder.newCharReader()};
+    Json::Value root{};
+    std::string errors{};
 
     std::string res;
     bool success = true;
 
     success &= do_tcp_cmd(sock_fd, {"get_beam_intrinsics"}, res);
+    success &=
+            reader->parse(res.c_str(), res.c_str() + res.size(), &root, NULL);
+
+    if (root.isMember("lidar_origin_to_beam_origin_mm")) {
+        info.lidar_origin_to_beam_origin_mm =
+                root["lidar_origin_to_beam_origin_mm"].asDouble();
+    } else {
+        std::cerr << "WARNING: No lidar_origin_to_beam_origin_mm found."
+                  << std::endl;
+    }
+
+    if (root["beam_altitude_angles"].size() != info.format.pixels_per_column) {
+        throw std::invalid_argument{
+                "Unexpected number of beam_altitude_angles"};
+    }
+
+    if (root["beam_azimuth_angles"].size() != info.format.pixels_per_column) {
+        throw std::invalid_argument{"Unexpected number of beam_azimuth_angles"};
+    }
+
+    for (const auto& v : root["beam_altitude_angles"])
+        info.beam_altitude_angles.push_back(v.asDouble());
+
+    for (const auto& v : root["beam_azimuth_angles"])
+        info.beam_azimuth_angles.push_back(v.asDouble());
 
     impl::socket_close(sock_fd);
 

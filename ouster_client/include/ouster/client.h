@@ -131,8 +131,7 @@ std::string get_sensors_alert(client& cli);
  * @param timeout_sec
  * @return a text of the beam intrinsics
  */
-
-std::string get_beam_intrinsics(client& cli);
+std::string get_beam_intrinsics(client& cli, sensor_info& info);
 
 /**
  * Get sensor config from the sensor
