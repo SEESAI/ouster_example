@@ -605,15 +605,6 @@ std::string get_beam_intrinsics(client& cli, sensor_info& info) {
                   << std::endl;
     }
 
-    if (root["beam_altitude_angles"].size() != info.format.pixels_per_column) {
-        throw std::invalid_argument{
-                "Unexpected number of beam_altitude_angles"};
-    }
-
-    if (root["beam_azimuth_angles"].size() != info.format.pixels_per_column) {
-        throw std::invalid_argument{"Unexpected number of beam_azimuth_angles"};
-    }
-
     for (const auto& v : root["beam_altitude_angles"])
         info.beam_altitude_angles.push_back(v.asDouble());
 
