@@ -741,8 +741,9 @@ bool reinitialize_lidar_settings(const std::string& hostname, const std::string&
         success &= res == "set_config_param";
     }
 
+    std::string phase_lock_enable_str = phase_lock_enable ? "true" : "false";
     success &= do_tcp_cmd(
-            sock_fd, {"set_config_param", "phase_lock_enable", std::to_string(phase_lock_enable)},
+            sock_fd, {"set_config_param", "phase_lock_enable", phase_lock_enable_str},
             res);
     success &= res == "set_config_param";
 
