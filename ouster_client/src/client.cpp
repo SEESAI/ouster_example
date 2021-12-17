@@ -713,7 +713,8 @@ std::shared_ptr<client> init_client(const std::string& hostname,
 
 bool reinitialize_lidar_settings(const std::string& hostname, const std::string& udp_dest_host,
                                  lidar_mode mode, timestamp_mode ts_mode,
-                                 int lidar_port, int imu_port) {
+                                 int lidar_port, int imu_port, bool phase_lock_enable,
+                                 int phase_lock_offset_deg) {
     int sock_fd = cfg_socket(hostname.c_str());
     if (!impl::socket_valid(sock_fd)) return false;
 
@@ -748,6 +749,16 @@ bool reinitialize_lidar_settings(const std::string& hostname, const std::string&
             res);
         success &= res == "set_config_param";
     }
+
+    success &= do_tcp_cmd(
+            sock_fd, {"set_config_param", "phase_lock_enable", std::to_string(phase_lock_enable)},
+            res);
+    success &= res == "set_config_param";
+
+    success &= do_tcp_cmd(
+            sock_fd, {"set_config_param", "phase_lock_offset", std::to_string(phase_lock_offset_deg)},
+            res);
+    success &= res == "set_config_param";
 
     success &= do_tcp_cmd(sock_fd, {"reinitialize"}, res);
     success &= res == "reinitialize";

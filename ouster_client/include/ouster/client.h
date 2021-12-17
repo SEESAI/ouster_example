@@ -57,7 +57,7 @@ std::shared_ptr<client> init_client(const std::string& hostname,
 
 bool reinitialize_lidar_settings(const std::string& hostname, const std::string& udp_dest_host,
                                 lidar_mode mode, timestamp_mode ts_mode,
-                                int lidar_port, int imu_port);
+                                int lidar_port, int imu_port, bool phase_lock_enable, int phase_lock_offset_deg);
 
 /**
  * Block for up to timeout_sec until either data is ready or an error occurs.
