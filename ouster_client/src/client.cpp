@@ -702,6 +702,23 @@ std::shared_ptr<client> init_client(const std::string& hostname,
     return success ? cli : std::shared_ptr<client>();
 }
 
+bool reinitialize_and_save_config_params(const std::string& hostname) {
+    int sock_fd = cfg_socket(hostname.c_str());
+    if (!impl::socket_valid(sock_fd)) return false;
+
+    std::string res;
+    bool success = true;
+
+    success &= do_tcp_cmd(sock_fd, {"reinitialize"}, res);
+    success &= res == "reinitialize";
+
+    success &= do_tcp_cmd(sock_fd, {"save_config_params"}, res);
+    success &= res == "save_config_params";
+
+    impl::socket_close(sock_fd);
+    return success;
+}
+
 bool reinitialize_lidar_settings(const std::string& hostname, const std::string& udp_dest_host,
                                  lidar_mode mode, timestamp_mode ts_mode,
                                  int lidar_port, int imu_port, bool phase_lock_enable,
@@ -762,7 +779,7 @@ bool reinitialize_lidar_settings(const std::string& hostname, const std::string&
     return success;
 }
 
-client_state poll_client(const client& c, const int timeout_sec) {
+client_state poll_client(const client& c, const int timeout_usec, const int timeout_sec) {
     fd_set rfds;
     FD_ZERO(&rfds);
     FD_SET(c.lidar_fd, &rfds);
@@ -770,7 +787,7 @@ client_state poll_client(const client& c, const int timeout_sec) {
 
     timeval tv;
     tv.tv_sec = timeout_sec;
-    tv.tv_usec = 0;
+    tv.tv_usec = timeout_usec;
 
     SOCKET max_fd = std::max(c.lidar_fd, c.imu_fd);
 

@@ -55,6 +55,8 @@ std::shared_ptr<client> init_client(const std::string& hostname,
                                     int lidar_port = 0, int imu_port = 0,
                                     int timeout_sec = 60);
 
+bool reinitialize_and_save_config_params(const std::string& hostname);
+
 bool reinitialize_lidar_settings(const std::string& hostname, const std::string& udp_dest_host,
                                 lidar_mode mode, timestamp_mode ts_mode,
                                 int lidar_port, int imu_port, bool phase_lock_enable, int phase_lock_offset_deg);
@@ -70,7 +72,7 @@ bool reinitialize_lidar_settings(const std::string& hostname, const std::string&
  * LIDAR_DATA) is true if lidar data is ready to read, and (s & IMU_DATA) is
  * true if imu data is ready to read
  */
-client_state poll_client(const client& cli, int timeout_sec = 1);
+client_state poll_client(const client& cli, int timeout_usec, int timeout_sec = 0);
 
 /**
  * Read lidar data from the sensor. Will not block.
