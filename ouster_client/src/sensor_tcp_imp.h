@@ -97,10 +97,20 @@ class SensorTcpImp : public util::SensorHttp {
     Json::Value lidar_data_format() const override;
 
     /**
-     * Gets the calibaration status of the sensor.
+     * Gets the calibration status of the sensor.
      */
     Json::Value calibration_status() const override;
 
+    /**
+     * Gets the alerts of the sensor.
+     */
+    std::string alerts() const override;
+
+    /**
+     * Gets the telemetry of the sensor.
+     */
+    std::string telemetry() const override;
+    
     /**
      * Restarts the sensor applying all staged configurations.
      */

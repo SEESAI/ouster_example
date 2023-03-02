@@ -166,14 +166,14 @@ bool collect_metadata(client& cli, SensorHttp& sensor_http,
         if (chrono::steady_clock::now() >= timeout_time) return false;
         std::this_thread::sleep_for(1s);
         status = sensor_http.sensor_info()["status"].asString();
-    } while (status == "INITIALIZING");
+    } while (status == "INITIALIZING" || status == "WARMUP");
 
     // not all metadata available when sensor isn't RUNNING
     if (status != "RUNNING") {
         throw std::runtime_error(
             "Cannot obtain full metadata with sensor status: " + status +
             ". Please ensure that sensor is not in a STANDBY, UNCONFIGURED, "
-            "WARMUP, or ERROR state");
+            "or ERROR state");
     }
 
     cli.meta = sensor_http.metadata();
@@ -191,6 +191,21 @@ bool get_config(const std::string& hostname, sensor_config& config,
     auto sensor_http = SensorHttp::create(hostname);
     auto res = sensor_http->get_config_params(active);
     config = parse_config(res);
+    return true;
+}
+
+bool get_sensors_intrinsics(const std::string& hostname, sensor_info& info) {
+    auto sensor_http = SensorHttp::create(hostname);
+    Json::Value root;
+    root["lidar_intrinsics"] = sensor_http->lidar_intrinsics();
+    root["imu_intrinsics"] = sensor_http->imu_intrinsics();
+
+    Json::StreamWriterBuilder builder;
+    builder["enableYAMLCompatibility"] = true;
+    builder["precision"] = 6;
+    builder["indentation"] = "    ";
+    auto sensors_intrinsics = Json::writeString(builder, root);
+    info = parse_sensors_intrinsics(sensors_intrinsics);
     return true;
 }
 
@@ -251,6 +266,16 @@ std::string get_metadata(client& cli, int timeout_sec, bool legacy_format) {
     builder["indentation"] = "    ";
     auto metadata_string = Json::writeString(builder, cli.meta);
     return legacy_format ? convert_to_legacy(metadata_string) : metadata_string;
+}
+
+std::string get_sensor_alert(client& cli) {
+    auto sensor_http = SensorHttp::create(cli.hostname);
+    return sensor_http->alerts();
+}
+
+std::string get_sensor_telemetry(client& cli) {
+    auto sensor_http = SensorHttp::create(cli.hostname);
+    return sensor_http->telemetry();
 }
 
 std::shared_ptr<client> init_client(const std::string& hostname, int lidar_port,
@@ -325,7 +350,7 @@ std::shared_ptr<client> init_client(const std::string& hostname,
     return success ? cli : std::shared_ptr<client>();
 }
 
-client_state poll_client(const client& c, const int timeout_sec) {
+client_state poll_client(const client& c, const int timeout_usec, const int timeout_sec) {
     fd_set rfds;
     FD_ZERO(&rfds);
     FD_SET(c.lidar_fd, &rfds);
@@ -333,7 +358,7 @@ client_state poll_client(const client& c, const int timeout_sec) {
 
     timeval tv;
     tv.tv_sec = timeout_sec;
-    tv.tv_usec = 0;
+    tv.tv_usec = timeout_usec;
 
     SOCKET max_fd = std::max(c.lidar_fd, c.imu_fd);
 

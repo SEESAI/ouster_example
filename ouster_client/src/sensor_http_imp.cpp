@@ -56,6 +56,14 @@ Json::Value SensorHttpImp::calibration_status() const {
     return get_json("api/v1/sensor/metadata/calibration_status");
 }
 
+string SensorHttpImp::alerts() const {
+    return get(string("api/v1/sensor/alerts"));
+}
+
+string SensorHttpImp::telemetry() const {
+    return get(string("api/v1/sensor/telemetry"));
+}
+
 // reinitialize to activate new settings
 void SensorHttpImp::reinitialize() const {
     execute("api/v1/sensor/cmd/reinitialize", "{}");
@@ -140,4 +148,12 @@ Json::Value SensorHttpImp_2_1::lidar_data_format() const {
 
 Json::Value SensorHttpImp_2_1::calibration_status() const {
     return get_json("api/v1/sensor/cmd/get_calibration_status");
+}
+
+std::string SensorHttpImp_2_1::alerts() const {
+    return get(string("api/v1/sensor/cmd/get_alerts"));
+}
+
+std::string SensorHttpImp_2_1::telemetry() const {
+    return get(string("api/v1/sensor/cmd/get_telemetry"));
 }

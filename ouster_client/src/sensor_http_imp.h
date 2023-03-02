@@ -97,6 +97,16 @@ class SensorHttpImp : public util::SensorHttp {
     Json::Value calibration_status() const override;
 
     /**
+     * Gets the alert of the sensor.
+     */
+    std::string alerts() const override;
+
+    /**
+     * Gets the telemetry of the sensor.
+     */
+    std::string telemetry() const override;
+
+    /**
      * Restarts the sensor applying all staged configurations.
      */
     void reinitialize() const override;
@@ -175,6 +185,16 @@ class SensorHttpImp_2_1 : public SensorHttpImp_2_2 {
      * Gets the calibaration status of the sensor.
      */
     Json::Value calibration_status() const override;
+
+    /**
+     * Gets the alert of the sensor.
+     */
+    std::string alerts() const override;
+
+    /**
+     *
+     */
+    std::string telemetry() const override;
 };
 
 }  // namespace impl

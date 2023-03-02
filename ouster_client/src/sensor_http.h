@@ -95,9 +95,19 @@ class SensorHttp {
     virtual Json::Value lidar_data_format() const = 0;
 
     /**
-     * Gets the calibaration status of the sensor.
+     * Gets the calibration status of the sensor.
      */
     virtual Json::Value calibration_status() const = 0;
+
+    /**
+     * Gets the alerts of the sensor.
+     */
+    virtual std::string alerts() const = 0;
+
+    /**
+     * Gets the telemetry of the sensor.
+     */
+    virtual std::string telemetry() const = 0;
 
     /**
      * Restarts the sensor applying all staged configurations.
