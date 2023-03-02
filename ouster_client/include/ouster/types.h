@@ -656,6 +656,18 @@ std::string to_string(const sensor_info& info);
 sensor_config parse_config(const std::string& config);
 
 /**
+ * Parse sensors intrinsics text blob from the sensor into a sensor_info struct.
+ *
+ * @throw runtime_error if the text is not valid json.
+ *
+ * @param[in] sensors_intrinsics a text blob given by get_sensors_intrinsics from client.h.
+ *
+ * @return a sensor_info struct populated with the sensors intrinsics.
+ * parameters.
+ */
+sensor_info parse_sensors_intrinsics(const std::string& sensors_intrinsics);
+
+/**
  * Get a string representation of sensor config. Only set fields will be
  * represented.
  *

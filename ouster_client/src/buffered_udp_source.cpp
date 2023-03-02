@@ -169,7 +169,7 @@ void BufferedUDPSource::produce(const packet_format& pf) {
 
         // Write data and status to circular buffer. EXIT and ERROR status
         // are just passed through with stale data.
-        st = poll_client(*cli_);
+        st = poll_client(*cli_, 0, 1);
         if (st == client_state::TIMEOUT) continue;
 
         auto& e = bufs_[write_ind_];
