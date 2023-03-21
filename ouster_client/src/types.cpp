@@ -840,6 +840,8 @@ std::string convert_to_legacy(const std::string& metadata) {
 
     if (root.isMember("config_params")) {
         result["lidar_mode"] = root["config_params"]["lidar_mode"];
+        result["phase_lock_enable"] = root["config_params"]["phase_lock_enable"];
+        result["phase_lock_offset"] = root["config_params"]["phase_lock_offset"];
         result["udp_dest"] = root["config_params"]["udp_dest"];
         result["udp_port_lidar"] = root["config_params"]["udp_port_lidar"];
         result["udp_port_imu"] = root["config_params"]["udp_port_imu"];
