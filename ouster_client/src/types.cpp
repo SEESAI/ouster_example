@@ -576,7 +576,7 @@ static sensor_info parse_sensors_intrinsics(const Json::Value& root) {
             for (int j = 0; j < 4; j++) {
                 const Json::Value::ArrayIndex ind = i * 4 + j;
                 info.lidar_to_sensor_transform(i, j) =
-                    root["lidar_to_sensor_transform"][ind].asDouble();
+                    root["lidar_intrinsics"]["lidar_to_sensor_transform"][ind].asDouble();
             }
         }
     } else {
