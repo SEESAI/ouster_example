@@ -412,6 +412,11 @@ std::string get_metadata(client& cli, int timeout_sec, bool legacy_format) {
     return legacy_format ? convert_to_legacy(metadata_string) : metadata_string;
 }
 
+std::string ger_sensor_alert(client& cli) {
+    auto sensor_http = SensorHttp::create(cli.hostname);
+    return sensor_http->alerts();
+}
+
 bool init_logger(const std::string& log_level, const std::string& log_file_path,
                  bool rotating, int max_size_in_bytes, int max_files) {
     if (log_file_path.empty()) {
@@ -534,7 +539,7 @@ std::shared_ptr<client> mtp_init_client(const std::string& hostname,
     return cli;
 }
 
-client_state poll_client(const client& c, const int timeout_sec) {
+client_state poll_client(const client& c, const int timeout_usec, const int timeout_sec) {
     fd_set rfds;
     FD_ZERO(&rfds);
     FD_SET(c.lidar_fd, &rfds);
@@ -542,7 +547,7 @@ client_state poll_client(const client& c, const int timeout_sec) {
 
     timeval tv;
     tv.tv_sec = timeout_sec;
-    tv.tv_usec = 0;
+    tv.tv_usec = timeout_usec;
 
     SOCKET max_fd = std::max(c.lidar_fd, c.imu_fd);
 
