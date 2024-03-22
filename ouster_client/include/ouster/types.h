@@ -917,9 +917,6 @@ std::string to_string(ChanFieldType ft);
  */
 class packet_format {
    protected:
-    template <typename T>
-    T px_field(const uint8_t* px_buf, ChanField i) const;
-
     template <typename T, typename SRC, int N>
     void block_field_impl(Eigen::Ref<img_t<T>> field, ChanField i,
                           const uint8_t* packet_buf) const;
@@ -931,6 +928,9 @@ class packet_format {
         field_types_;
 
    public:
+    template <typename T>
+    T px_field(const uint8_t* px_buf, ChanField i) const;
+
     packet_format(UDPProfileLidar udp_profile_lidar, size_t pixels_per_column,
                   size_t columns_per_packet);
 
