@@ -116,9 +116,21 @@ class SensorHttpImp : public util::SensorHttp {
         int timeout_sec = SHORT_HTTP_REQUEST_TIMEOUT_SECONDS) const override;
 
     /**
-     * Gets the calibaration status of the sensor.
+     * Gets the calibration status of the sensor.
      */
     Json::Value calibration_status(
+        int timeout_sec = SHORT_HTTP_REQUEST_TIMEOUT_SECONDS) const override;
+    
+    /**
+     * Gets the alert of the sensor.
+     */
+    std::string alerts(
+        int timeout_sec = SHORT_HTTP_REQUEST_TIMEOUT_SECONDS) const override;
+
+    /**
+     * Gets the telemetry of the sensor.
+     */
+    std::string telemetry(
         int timeout_sec = SHORT_HTTP_REQUEST_TIMEOUT_SECONDS) const override;
 
     /**
@@ -273,9 +285,21 @@ class SensorHttpImp_2_1 : public SensorHttpImp_2_2 {
         int timeout_sec = SHORT_HTTP_REQUEST_TIMEOUT_SECONDS) const override;
 
     /**
-     * Gets the calibaration status of the sensor.
+     * Gets the calibration status of the sensor.
      */
     Json::Value calibration_status(
+        int timeout_sec = SHORT_HTTP_REQUEST_TIMEOUT_SECONDS) const override;
+    
+    /**
+     * Gets the alert of the sensor.
+     */
+    std::string alerts(
+        int timeout_sec = SHORT_HTTP_REQUEST_TIMEOUT_SECONDS) const override;
+
+    /**
+     * Gets the telemetry of the sensor.
+     */
+    std::string telemetry(
         int timeout_sec = SHORT_HTTP_REQUEST_TIMEOUT_SECONDS) const override;
 };
 

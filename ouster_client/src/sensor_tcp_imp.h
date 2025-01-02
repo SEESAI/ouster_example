@@ -127,11 +127,21 @@ class SensorTcpImp : public util::SensorHttp {
     Json::Value lidar_data_format(int timeout_sec = 1) const override;
 
     /**
-     * Gets the calibaration status of the sensor.
+     * Gets the calibration status of the sensor.
      *
      * @param[in] timeout_sec The timeout for the request in seconds.
      */
     Json::Value calibration_status(int timeout_sec = 1) const override;
+
+    /**
+     * Gets the alerts of the sensor.
+     */
+    std::string alerts(int timeout_sec = 1) const override;
+
+    /**
+     * Gets the telemetry of the sensor.
+     */
+    std::string telemetry(int timeout_sec = 1) const override;
 
     /**
      * Restarts the sensor applying all staged configurations.

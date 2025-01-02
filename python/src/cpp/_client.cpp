@@ -1249,8 +1249,8 @@ void init_client(py::module& m, py::module&) {
         .def(
             "poll",
             [](const client_shared_ptr& self,
-               int timeout_sec) -> sensor::client_state {
-                return sensor::poll_client(*self, timeout_sec);
+               int timeout_usec, int timeout_sec) -> sensor::client_state {
+                return sensor::poll_client(*self, timeout_usec, timeout_sec);
             },
             py::arg("timeout_sec") = 1)
         .def("read_lidar_packet",

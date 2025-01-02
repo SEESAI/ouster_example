@@ -245,6 +245,22 @@ bool get_config(const std::string& hostname, sensor_config& config, bool active,
     return get_config(*sensor_http, config, active, timeout_sec);
 }
 
+bool get_sensors_intrinsics(const std::string& hostname, sensor_info& info,
+                            int timeout_sec) {
+    auto sensor_http = SensorHttp::create(hostname, timeout_sec);
+    Json::Value root;
+    root["lidar_intrinsics"] = sensor_http->lidar_intrinsics();
+    root["imu_intrinsics"] = sensor_http->imu_intrinsics();
+
+    Json::StreamWriterBuilder builder;
+    builder["enableYAMLCompatibility"] = true;
+    builder["precision"] = 6;
+    builder["indentation"] = "    ";
+    auto sensors_intrinsics = Json::writeString(builder, root);
+    info = parse_sensors_intrinsics(sensors_intrinsics);
+    return true;
+}
+
 bool set_config(SensorHttp& sensor_http, const sensor_config& config,
                 uint8_t config_flags, int timeout_sec) {
     // reset staged config to avoid spurious errors
@@ -348,6 +364,16 @@ std::string get_metadata(client& cli, int timeout_sec) {
     builder["precision"] = 6;
     builder["indentation"] = "    ";
     return Json::writeString(builder, meta);
+}
+
+std::string get_sensor_alert(client& cli) {
+    auto sensor_http = SensorHttp::create(cli.hostname);
+    return sensor_http->alerts();
+}
+
+std::string get_sensor_telemetry(client& cli) {
+    auto sensor_http = SensorHttp::create(cli.hostname);
+    return sensor_http->telemetry();
 }
 
 bool init_logger(const std::string& log_level, const std::string& log_file_path,
@@ -501,10 +527,10 @@ void set_poll(client_poller& poller, const client& c) {
     poller.max_fd = std::max({poller.max_fd, c.lidar_fd, c.imu_fd});
 }
 
-int poll(client_poller& poller, int timeout_sec) {
+int poll(client_poller& poller, int timeout_usec, int timeout_sec) {
     timeval tv;
     tv.tv_sec = timeout_sec;
-    tv.tv_usec = 0;
+    tv.tv_usec = timeout_usec;
 
     SOCKET retval =
         select((int)poller.max_fd + 1, &poller.rfds, NULL, NULL, &tv);
@@ -536,11 +562,11 @@ client_state get_poll(const client_poller& poller, const client& c) {
 
 }  // namespace impl
 
-client_state poll_client(const client& c, const int timeout_sec) {
+client_state poll_client(const client& c, const int timeout_usec, const int timeout_sec) {
     impl::client_poller poller;
     impl::reset_poll(poller);
     impl::set_poll(poller, c);
-    int res = impl::poll(poller, timeout_sec);
+    int res = impl::poll(poller, timeout_usec, timeout_sec);
     if (res <= 0) {
         // covers TIMEOUT and error states
         return impl::get_error(poller);

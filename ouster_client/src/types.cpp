@@ -770,6 +770,40 @@ sensor_config parse_config(const Json::Value& root) {
     return config;
 }
 
+static sensor_info parse_sensors_intrinsics(const Json::Value& root) {
+    sensor_info info{};
+
+    if (root["imu_intrinsics"]["imu_to_sensor_transform"].size() == 16) {
+        for (int i = 0; i < 4; i++) {
+            for (int j = 0; j < 4; j++) {
+                const Json::Value::ArrayIndex ind = i * 4 + j;
+                info.imu_to_sensor_transform(i, j) =
+                    root["imu_intrinsics"]["imu_to_sensor_transform"][ind].asDouble();
+            }
+        }
+    } else {
+        std::cerr << "WARNING: No valid imu_to_sensor_transform found."
+                  << std::endl;
+        info.imu_to_sensor_transform = default_imu_to_sensor_transform;
+    }
+
+    if (root["lidar_intrinsics"]["lidar_to_sensor_transform"].size() == 16) {
+        for (int i = 0; i < 4; i++) {
+            for (int j = 0; j < 4; j++) {
+                const Json::Value::ArrayIndex ind = i * 4 + j;
+                info.lidar_to_sensor_transform(i, j) = 
+                    root["lidar_intrinsics"]["lidar_to_sensor_transform"][ind].asDouble();
+            }
+        }
+    } else {
+        std::cerr << "WARNING: No valid lidar_to_sensor_transform found."
+                  << std::endl;
+        info.lidar_to_sensor_transform = default_lidar_to_sensor_transform;
+    }
+
+    return info;
+}
+
 sensor_config parse_config(const std::string& config) {
     Json::Value root{};
     Json::CharReaderBuilder builder{};
@@ -783,6 +817,21 @@ sensor_config parse_config(const std::string& config) {
     }
 
     return parse_config(root);
+}
+
+sensor_info parse_sensors_intrinsics(const std::string& sensors_intrinsics) {
+    Json::Value root{};
+    Json::CharReaderBuilder builder{};
+    std::string errors{};
+    std::stringstream ss{sensors_intrinsics};
+
+    if (sensors_intrinsics.size()) {
+        if (!Json::parseFromStream(builder, ss, &root, &errors)) {
+            throw std::runtime_error{errors};
+        }
+    }
+
+    return parse_sensors_intrinsics(root);
 }
 
 Json::Value config_to_json(const sensor_config& config) {

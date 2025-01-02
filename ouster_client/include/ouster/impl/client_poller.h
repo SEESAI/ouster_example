@@ -38,11 +38,12 @@ void set_poll(client_poller& poller, const client& cli);
  * Polls clients previously set with `set_poll`
  *
  * @param[in] poller client_poller
+ * @param[in] timeout_usec timeout in microseconds
  * @param[in] timeout_sec timeout in seconds
  *
  * @return -1 for error, 0 for timeout, otherwise number of messages received
  */
-int poll(client_poller& poller, int timeout_sec = 1);
+int poll(client_poller& poller, int timeout_usec, int timeout_sec = 0);
 
 /**
  * Retrieves error state of the poller
