@@ -175,13 +175,25 @@ class SensorHttp {
         int timeout_sec = SHORT_HTTP_REQUEST_TIMEOUT_SECONDS) const = 0;
 
     /**
-     * Gets the calibaration status of the sensor.
+     * Gets the calibration status of the sensor.
      *
      * @param[in] timeout_sec The timeout for the request in seconds.
      *
      * @return calibration status received from sensor
      */
     virtual Json::Value calibration_status(
+        int timeout_sec = SHORT_HTTP_REQUEST_TIMEOUT_SECONDS) const = 0;
+    
+    /**
+     * Gets the alerts of the sensor.
+     */
+    virtual std::string alerts(
+        int timeout_sec = SHORT_HTTP_REQUEST_TIMEOUT_SECONDS) const = 0;
+
+    /**
+     * Gets the telemetry of the sensor.
+     */
+    virtual std::string telemetry(
         int timeout_sec = SHORT_HTTP_REQUEST_TIMEOUT_SECONDS) const = 0;
 
     /**

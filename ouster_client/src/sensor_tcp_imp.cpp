@@ -97,6 +97,14 @@ Json::Value SensorTcpImp::calibration_status(int /*timeout_sec*/) const {
     return tcp_cmd_json({"get_calibration_status"}, false);
 }
 
+std::string SensorTcpImp::alerts(int /*timeout_sec*/) const {
+    return tcp_cmd({"get_alerts"});
+}
+
+std::string SensorTcpImp::telemetry(int /*timeout_sec*/) const {
+    return tcp_cmd({"get_telemetry"});
+}
+
 void SensorTcpImp::reinitialize(int /*timeout_sec*/) const {
     // reinitialize to make all staged parameters effective
     tcp_cmd_with_validation({"reinitialize"}, "reinitialize");

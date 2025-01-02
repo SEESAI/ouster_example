@@ -67,6 +67,14 @@ Json::Value SensorHttpImp::calibration_status(int timeout_sec) const {
     return get_json("api/v1/sensor/metadata/calibration_status", timeout_sec);
 }
 
+string SensorHttpImp::alerts(int timeout_sec) const {
+    return get(string("api/v1/sensor/alerts"), timeout_sec);
+}
+
+string SensorHttpImp::telemetry(int timeout_sec) const {
+    return get(string("api/v1/sensor/telemetry"), timeout_sec);
+}
+
 std::string SensorHttpImp::network(int timeout_sec) const {
     return get("api/v1/system/network", timeout_sec);
 }
@@ -182,6 +190,14 @@ Json::Value SensorHttpImp_2_1::lidar_data_format(int timeout_sec) const {
 
 Json::Value SensorHttpImp_2_1::calibration_status(int timeout_sec) const {
     return get_json("api/v1/sensor/cmd/get_calibration_status", timeout_sec);
+}
+
+std::string SensorHttpImp_2_1::alerts(int timeout_sec) const {
+    return get(string("api/v1/sensor/cmd/get_alerts"), timeout_sec);
+}
+
+std::string SensorHttpImp_2_1::telemetry(int timeout_sec) const {
+    return get(string("api/v1/sensor/cmd/get_telemetry"), timeout_sec);
 }
 
 SensorHttpImp_2_4_or_3::SensorHttpImp_2_4_or_3(const string& hostname)

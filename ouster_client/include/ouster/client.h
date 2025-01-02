@@ -135,13 +135,14 @@ std::shared_ptr<client> mtp_init_client(
  * cleared by read_lidar_packet() and read_imu_packet() before the next call.
  *
  * @param[in] cli client returned by init_client associated with the connection.
+ * @param[in] timeout_usec microseconds to block while waiting for data.
  * @param[in] timeout_sec seconds to block while waiting for data.
  *
  * @return client_state s where (s & ERROR) is true if an error occured, (s &
  * LIDAR_DATA) is true if lidar data is ready to read, and (s & IMU_DATA) is
  * true if imu data is ready to read.
  */
-client_state poll_client(const client& cli, int timeout_sec = 1);
+client_state poll_client(const client& cli, int timeout_usec, int timeout_sec = 0);
 
 /**
  * Read lidar data from the sensor. Will not block.
@@ -236,6 +237,24 @@ std::string get_metadata(client& cli,
                          int timeout_sec = LONG_HTTP_REQUEST_TIMEOUT_SECONDS);
 
 /**
+ * Get alerts from the sensor.
+ *
+ * @param[in] cli client returned by init_client associated with the connection.
+ *
+ * @return a text blob of the get_alerts.
+ */
+std::string get_sensor_alert(client& cli);
+
+/**
+ * Get telemetry from the sensor.
+ *
+ * @param[in] cli client returned by init_client associated with the connection.
+ *
+ * @return a text blob of the get_telemetry.
+ */
+std::string get_sensor_telemetry(client& cli);
+
+/**
  * Get sensor config from the sensor.
  *
  * Populates passed in config with the results of get_config.
@@ -251,6 +270,19 @@ std::string get_metadata(client& cli,
 bool get_config(const std::string& hostname, sensor_config& config,
                 bool active = true,
                 int timeout_sec = LONG_HTTP_REQUEST_TIMEOUT_SECONDS);
+
+/**
+ * Get sensors intrinsics from the sensor.
+ * 
+ * Populates passed in info with the results of get_sensors_intrinsics.
+ * 
+ * @param[in] hostname sensor hostname
+ * @param[out] info sensor info to populate.
+ * 
+ * @return true if sensor info successfully populated.
+ */
+bool get_sensors_intrinsics(const std::string& hostname, sensor_info& info,
+                            int timeout_sec = LONG_HTTP_REQUEST_TIMEOUT_SECONDS);
 
 // clang-format off
 /**
